@@ -2,7 +2,7 @@ var socket = io.connect()
 
 spanner = {
   load: function(name) {
-    $.ajax({
+    return $.ajax({
       url: '/mod/' + name + '.html',
       success: function(data) {
         $('<div>').attr('data-mod', name)
@@ -11,15 +11,81 @@ spanner = {
         less.refreshStyles()
       }
     })
+  },
+
+  init: function() {
+    socket.on('msg', _.bind(this.handleMsg, this))
+
+    $.when(this.load('core/chat')).done(_.bind(function() {
+      this.loadLog()
+    }, this))
+
+    $.getJSON('me.json', function(data) {
+      spanner.me = data
+      $('footer .username').text(data.username)
+    })
+  },
+
+  listeners: {},
+  on: function(types, cb) {
+    _.each(types.split(' '), function(type) {
+      if (!this.listeners[type]) {
+        this.listeners[type] = []
+      }
+      this.listeners[type].push(cb)
+    }, this)
+  },
+
+  off: function(types, cb) {
+    _.each(types.split(' '), function(type) {
+      if (this.listeners[type]) {
+        this.listeners[type] = _.without(this.listeners[type], cb)
+      }
+    })
+  },
+
+  _trigger: function(type/*, ... */) {
+    var listeners = this.listeners[type],
+        params = _.tail(arguments)
+    if (listeners) {
+      _.each(listeners, function(cb) {
+        cb.apply(null, params)
+      })
+    }
+  },
+
+  send: function(msg) {
+    this._trigger('send:' + msg.type, msg)
+    socket.emit('msg', msg, _.bind(this.handleMsg, this))
+  },
+
+  handleMsg: function(msg) {
+    this._trigger(msg.type, msg)
+    this.log(msg)
+  },
+
+  log: function(msg) {
+    if (!sessionStorage) { return }
+    this._log.push(msg)
+    sessionStorage.log = JSON.stringify(this._log)
+  },
+
+  loadLog: function() {
+    if (!sessionStorage) { return }
+    try {
+      this._log = JSON.parse(sessionStorage.log)
+    } catch (e) {}
+    if (!this._log) {
+      this._log = []
+    }
+
+    _.each(this._log, function(msg) {
+      this._trigger('replay:' + msg.type, msg)
+    }, this)
   }
 }
 
-spanner.load('core/chat')
-
-$.getJSON('me.json', function(data) {
-  spanner.me = data
-  $('footer .username').text(data.username)
-})
+spanner.init()
 
 $(function() {
   var $logo = $('footer .logo')

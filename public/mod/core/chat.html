@@ -94,10 +94,8 @@
     }
   }
 
-  socket.on('msg', function(msg) {
-    if (msg.type == 'chat') {
-      display(msg)
-    }
+  spanner.on('chat replay:chat', function(msg) {
+    display(msg)
   })
 
   var $input = $('#chat .new-message input[type="text"]')
@@ -112,8 +110,7 @@
       type: 'chat',
       text: $input.val()
     }
-    socket.emit('msg', msg)
-    display(msg, true)
+    spanner.send(msg)
     $input.val('')
     return false
   })

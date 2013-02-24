@@ -137,9 +137,11 @@ app.post('/login', function(req, res) {
 
 var sio = new SessionSockets(io, couchSessions, cookieParser)
 sio.on('connection', function(err, socket, session) {
-  socket.on('msg', function(msg) {
+  socket.on('msg', function(msg, cb) {
+    msg.ts = Date.now()
     msg.user = session.username
     socket.broadcast.emit('msg', msg)
+    cb(msg)
   })
 })
 

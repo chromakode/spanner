@@ -81,7 +81,8 @@
 
   function display(msg, bySelf) {
     var $log = $('#chat .log'),
-        atBottom = $log.scrollTop() == $log.prop('scrollHeight') - $log.innerHeight()
+        scrollBottom = $log.prop('scrollHeight') - $log.innerHeight()
+        atBottom = Math.abs($log.scrollTop() - scrollBottom) < 5
 
     $log.append(lineTemplate({
       author: bySelf ? spanner.me.username : msg.user,

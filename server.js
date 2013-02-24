@@ -1,8 +1,5 @@
 var fs = require('fs')
   , express = require('express')
-  , app = express()
-  , server = require('http').createServer(app)
-  , io = require('socket.io').listen(server)
   , SessionSockets = require('session.socket.io')
   , connect = require('connect')
   , connectCouch = require('connect-couchdb')(connect)
@@ -37,6 +34,14 @@ logdb.exists(function(err, exists) {
     })
   }
 })
+
+
+var app = express()
+  , server = require('https').createServer({
+      key: fs.readFileSync(__dirname + '/keys/key.pem'),
+      cert: fs.readFileSync(__dirname + '/keys/cert.pem')
+  }, app)
+  , io = require('socket.io').listen(server)
 
 msgLog = {
   fetchLimit: 1000,

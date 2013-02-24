@@ -236,5 +236,5 @@ sio.on('connection', function(err, socket, session) {
 })
 
 if (!module.parent) {
-  server.listen(8080)
+  server.listen(config.port)
 }

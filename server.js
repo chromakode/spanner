@@ -80,6 +80,73 @@ var cookieParser = connect.cookieParser(config.secret)
 app.use(cookieParser)
 app.use(connect.session({store: couchSessions}))
 
+app.get('/', function(req, res) {
+  if (!req.session.username) {
+    res.redirect('/login')
+  } else {
+    res.sendfile(__dirname + '/public/index.html')
+  }
+})
+
+app.use(express.static(__dirname + '/public'))
+
+app.get('/login', function(req, res) {
+  res.sendfile(__dirname + '/public/login.html')
+})
+
+app.post('/login', function(req, res) {
+  if (!req.body.username || !req.body.password) {
+    res.send(400)
+    return
+  }
+  userdb.get(req.body.username, function(err, doc) {
+    if (err) {
+      if (err.error == 'not_found') {
+        res.send(403)
+      } else {
+        res.send(500)
+      }
+    } else {
+      bcrypt.compare(req.body.password, doc.password, function(err, matched) {
+        if (matched) {
+          req.session.username = req.body.username
+          res.redirect('/')
+        } else {
+          res.send(403)
+        }
+      })
+    }
+  })
+})
+
+app.post('/signup', function(req, res) {
+  if (req.body.key != config.signupKey) {
+    res.send(403)
+    return
+  }
+
+  if (!req.body.username || !req.body.password) {
+    res.send(400)
+    return
+  }
+
+  bcrypt.hash(req.body.password, 10, function(err, encPassword) {
+    userdb.save(req.body.username, {password: encPassword}, function(err, doc) {
+      if (err) {
+        res.send(500)
+      } else {
+        res.send(200)
+      }
+    })
+  })
+})
+
+app.use(function(req, res, next) {
+  if (!req.session.username) {
+    res.send(403)
+  }
+})
+
 app.get('/mod/:name.html', function(req, res) {
   moddb.get(req.params.name, function(err, doc) {
     res.set('Content-Type', 'text/javascript');
@@ -148,66 +215,16 @@ app.get('/log.json', function(req, res) {
   })
 })
 
-app.get('/', function(req, res) {
-  if (!req.session.username) {
-    res.redirect('/login')
-  } else {
-    res.sendfile(__dirname + '/public/index.html')
-  }
-})
 
-app.get('/login', function(req, res) {
-  res.sendfile(__dirname + '/public/login.html')
-})
-
-app.post('/login', function(req, res) {
-  if (!req.body.username || !req.body.password) {
-    res.send(400)
-    return
-  }
-  userdb.get(req.body.username, function(err, doc) {
-    if (err) {
-      if (err.error == 'not_found') {
-        res.send(403)
-      } else {
-        res.send(500)
-      }
-    } else {
-      bcrypt.compare(req.body.password, doc.password, function(err, matched) {
-        if (matched) {
-          req.session.username = req.body.username
-          res.redirect('/')
-        } else {
-          res.send(403)
-        }
-      })
-    }
-  })
-})
-
-app.post('/signup', function(req, res) {
-  if (req.body.key != config.signupKey) {
-    res.send(403)
-    return
-  }
-
-  if (!req.body.username || !req.body.password) {
-    res.send(400)
-    return
-  }
-
-  bcrypt.hash(req.body.password, 10, function(err, encPassword) {
-    userdb.save(req.body.username, {password: encPassword}, function(err, doc) {
-      if (err) {
-        res.send(500)
-      } else {
-        res.send(200)
-      }
+var sio = new SessionSockets(io, couchSessions, cookieParser)
+io.configure(function() {
+  io.set('authorization', function(handshakeData, callback) {
+    sio.getSession({handshake: handshakeData}, function(err, session) {
+      callback(err, !!session.username)
     })
   })
 })
 
-var sio = new SessionSockets(io, couchSessions, cookieParser)
 sio.on('connection', function(err, socket, session) {
   socket.on('msg', function(msg, cb) {
     msg.ts = Date.now()
@@ -217,8 +234,6 @@ sio.on('connection', function(err, socket, session) {
     cb(msg)
   })
 })
-
-app.use(express.static(__dirname + '/public'))
 
 if (!module.parent) {
   server.listen(8080)

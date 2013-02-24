@@ -14,6 +14,7 @@ var fs = require('fs')
 var couch = new cradle.Connection()
   , moddb = exports.moddb = couch.database('spanner-mods')
   , userdb = exports.userdb = couch.database('spanner-users')
+  , logdb = exports.logdb = couch.database('spanner-log')
 
 ;[moddb, userdb].forEach(function(db) {
   db.exists(function(err, exists) {
@@ -22,6 +23,49 @@ var couch = new cradle.Connection()
     }
   })
 })
+
+logdb.exists(function(err, exists) {
+  if (!exists) {
+    logdb.create(function() {
+      logdb.save('_design/log', {
+        byDate: {
+          map: function (doc) {
+            emit(doc.ts, doc)
+          }
+        }
+      })
+    })
+  }
+})
+
+msgLog = {
+  fetchLimit: 1000,
+
+  log: function(msg) {
+    logdb.save(msg, function(err, doc) {
+      if (err) {
+        console.log('couch put error', err)
+      }
+    })
+  },
+
+  fetch: function(cb) {
+    opts = {limit: this.fetchLimit, descending: true}
+    logdb.view('log/byDate', opts, function(err, res) {
+      if (err) {
+        console.log('couch log view error', err)
+      } else {
+        res = res.toArray()
+        res.reverse()
+        res.forEach(function(doc) {
+          delete doc._id
+          delete doc._rev
+        })
+        cb(res)
+      }
+    })
+  }
+}
 
 var couchSessions = new connectCouch({name: 'spanner-sessions'})
 couch.database(couchSessions.db.name).exists(function(err, exists) {
@@ -98,6 +142,12 @@ app.get('/me.json', function(req, res) {
   })
 })
 
+app.get('/log.json', function(req, res) {
+  msgLog.fetch(function(log) {
+    res.send(log)
+  })
+})
+
 app.get('/', function(req, res) {
   if (!req.session.username) {
     res.redirect('/login')
@@ -140,6 +190,7 @@ sio.on('connection', function(err, socket, session) {
   socket.on('msg', function(msg, cb) {
     msg.ts = Date.now()
     msg.user = session.username
+    msgLog.log(msg)
     socket.broadcast.emit('msg', msg)
     cb(msg)
   })

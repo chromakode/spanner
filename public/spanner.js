@@ -72,16 +72,34 @@ spanner = {
 
   loadLog: function() {
     if (!sessionStorage) { return }
+
     try {
       this._log = JSON.parse(sessionStorage.log)
     } catch (e) {}
+
     if (!this._log) {
       this._log = []
     }
 
+    // restore local log (fast)
+    var lastTs = 0
     _.each(this._log, function(msg) {
       this._trigger('replay:' + msg.type, msg)
+      lastTs = Math.max(lastTs, msg.ts)
     }, this)
+
+    // sync up with server log and store anything we missed
+    $.ajax({
+      url: 'log.json',
+      cache: false,
+      success: _.bind(function(log) {
+        _.each(log, function(msg) {
+          if (msg.ts <= lastTs) { return }
+          this._trigger('replay:' + msg.type, msg)
+          this.log(msg)
+        }, this)
+      }, this)
+    })
   }
 }
 

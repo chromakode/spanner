@@ -185,6 +185,28 @@ app.post('/login', function(req, res) {
   })
 })
 
+app.post('/signup', function(req, res) {
+  if (req.body.key != config.signupKey) {
+    res.send(403)
+    return
+  }
+
+  if (!req.body.username || !req.body.password) {
+    res.send(400)
+    return
+  }
+
+  bcrypt.hash(req.body.password, 10, function(err, encPassword) {
+    userdb.save(req.body.username, {password: encPassword}, function(err, doc) {
+      if (err) {
+        res.send(500)
+      } else {
+        res.send(200)
+      }
+    })
+  })
+})
+
 var sio = new SessionSockets(io, couchSessions, cookieParser)
 sio.on('connection', function(err, socket, session) {
   socket.on('msg', function(msg, cb) {

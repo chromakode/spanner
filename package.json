@@ -1,0 +1,15 @@
+{
+  "name": "spanner",
+  "description": "hacker chat",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "3.1.0",
+    "connect": "2.7.3",
+    "cradle": "0.6.4",
+    "socket.io": "0.9.13",
+    "session.socket.io": "0.1.6",
+    "connect-couchdb": "0.2.5",
+    "bcrypt": "0.7.3"
+  }
+}

@@ -1,0 +1,120 @@
+<style type="text/less">
+#chat {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+
+  .log {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 24px;
+    padding: 4px;
+    overflow: auto;
+
+    .message {
+      margin-bottom: .5em;
+    }
+
+    .author {
+      background: #e2e2e2;
+      border-radius: 3px;
+      padding: 2px 5px;
+      margin-right: .5em;
+    }
+  }
+
+  form.new-message {
+    @send-width: 55px;
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 24px;
+    margin-bottom: 2px;
+
+    input {
+      height: 24px;
+      border: 1px solid gray;
+    }
+
+    .text {
+      position: absolute;
+      left: 0;
+      right: @send-width;
+      margin-right: 2px;
+
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 0 4px;
+      }
+    }
+
+    input[type="submit"] {
+      position: absolute;
+      right: 0;
+      width: @send-width;
+      background: #ddd;
+
+      &:active {
+        background: #ccc;
+      }
+    }
+  }
+}
+</style>
+
+<div id="chat">
+<div class="log">
+</div>
+<form class="new-message">
+  <div class="text"><input type="text"></div><input type="submit" value="send">
+</form>
+</div>
+
+<script>
+(function() {
+  var lineTemplate = _.template('<div class="message"><span class="author"><%= d.author %></span><%= d.text %></div>', null, {variable: 'd'})
+
+  function display(msg, bySelf) {
+    var $log = $('#chat .log'),
+        atBottom = $log.scrollTop() == $log.prop('scrollHeight') - $log.innerHeight()
+
+    $log.append(lineTemplate({
+      author: bySelf ? spanner.me.username : msg.user,
+      text: msg.text
+    }))
+
+    if (atBottom) {
+      $log.scrollTop($log.prop('scrollHeight'))
+    }
+  }
+
+  socket.on('msg', function(msg) {
+    if (msg.type == 'chat') {
+      display(msg)
+    }
+  })
+
+  var $input = $('#chat .new-message input[type="text"]')
+
+  $('#chat .log').on('click', function() {
+    $input.focus()
+  })
+  $input.focus()
+
+  $('#chat .new-message').on('submit', function() {
+    msg = {
+      type: 'chat',
+      text: $input.val()
+    }
+    socket.emit('msg', msg)
+    display(msg, true)
+    $input.val('')
+    return false
+  })
+})()
+</script>

@@ -12,8 +12,8 @@ var fs = require('fs')
 
 
 var couch = new cradle.Connection()
-exports.moddb = moddb = couch.database('spanner-mods')
-exports.userdb = userdb = couch.database('spanner-users')
+  , moddb = exports.moddb = couch.database('spanner-mods')
+  , userdb = exports.userdb = couch.database('spanner-users')
 
 ;[moddb, userdb].forEach(function(db) {
   db.exists(function(err, exists) {

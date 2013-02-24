@@ -10,11 +10,13 @@
     left: 0;
     right: 0;
     bottom: 24px;
+    margin: 0;
     padding: 4px;
     overflow: auto;
 
     .message {
       margin-bottom: .5em;
+      list-style-type: none;
     }
 
     .author {
@@ -68,8 +70,7 @@
 </style>
 
 <div id="chat">
-<div class="log">
-</div>
+<ol class="log"></ol>
 <form class="new-message">
   <div class="text"><input type="text"></div><input type="submit" value="send">
 </form>
@@ -77,7 +78,7 @@
 
 <script>
 (function() {
-  var lineTemplate = _.template('<div class="message"><span class="author"><%= d.author %></span><%= d.text %></div>', null, {variable: 'd'})
+  var lineTemplate = _.template('<li class="message"><span class="author"><%= d.author %></span><%= d.text %></li>', null, {variable: 'd'})
 
   function display(msg, bySelf) {
     var $log = $('#chat .log'),

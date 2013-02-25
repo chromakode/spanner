@@ -1,5 +1,5 @@
 <style type="text/less">
-#userlist {
+#user-list {
   position: absolute;
   bottom: 34px;
   right: 22px;
@@ -27,13 +27,13 @@
 }
 </style>
 
-<ul id="userlist">
+<ul id="user-list">
 </ul>
 
 <script>
 (function() {
   function render() {
-    var $userlist = $('#userlist')
+    var $userlist = $('#user-list')
     $userlist.empty()
     _.each(spanner.userlist, function(user, name) {
       $('<li>')

@@ -1,5 +1,3 @@
-var socket
-
 spanner = {
   load: function(name) {
     return $.ajax({
@@ -19,10 +17,11 @@ spanner = {
       this.load('core/userlist')
     ).done(_.bind(function() {
       this.loadLog()
+      this.socket = io.connect()
+      this.socket.on('connect', _.bind(this.colorLogo, this, 'darkgreen'))
+      this.socket.on('disconnect', _.bind(this.colorLogo, this, 'darkred'))
+      this.socket.on('msg', _.bind(this.handleMsg, this))
     }, this))
-
-    socket = io.connect()
-    socket.on('msg', _.bind(this.handleMsg, this))
 
     $.getJSON('me.json', function(data) {
       spanner.me = data
@@ -32,6 +31,12 @@ spanner = {
     spanner.userlist = {}
     $.getJSON('who.json', function(data) {
       _.extend(spanner.userlist, data)
+    })
+  },
+
+  colorLogo: function(color) {
+    spanner.$logo.done(function($logo) {
+      $logo.css('fill', color)
     })
   },
 
@@ -65,7 +70,7 @@ spanner = {
 
   send: function(msg) {
     this._trigger('send:' + msg.type, msg)
-    socket.emit('msg', msg, _.bind(this.handleMsg, this))
+    this.socket.emit('msg', msg, _.bind(this.handleMsg, this))
   },
 
   handleMsg: function(msg) {
@@ -124,24 +129,15 @@ spanner = {
   }
 }
 
-spanner.init()
-
+spanner.$logo = new $.Deferred()
 $(function() {
   var $logo = $('footer .logo')
   $logo[0].onload = function() {
     var svg = $logo[0].getSVGDocument(),
         $spanner = $('#spanner', svg)
 
-    if (socket.socket.connected) {
-      $spanner.css('fill', 'darkgreen')
-    }
-
-    socket.on('connect', function() {
-      $spanner.css('fill', 'darkgreen')
-    })
-
-    socket.on('disconnect', function() {
-      $spanner.css('fill', 'darkred')
-    })
+    spanner.$logo.resolve($spanner)
   }
 })
+
+spanner.init()

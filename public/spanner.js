@@ -85,7 +85,7 @@ spanner = {
     var lastTs = 0
     _.each(this._log, function(msg) {
       this._trigger('replay:' + msg.type, msg)
-      lastTs = Math.max(lastTs, msg.ts)
+      lastTs = Math.max(lastTs, msg.ts || 0)
     }, this)
 
     // sync up with server log and store anything we missed

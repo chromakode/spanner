@@ -190,9 +190,11 @@ app.post('/signup', function(req, res) {
   })
 })
 
-app.use(function(req, res, next) {
+app.all('*', function(req, res, next) {
   if (!req.session.username) {
     res.send(403)
+  } else {
+    next()
   }
 })
 

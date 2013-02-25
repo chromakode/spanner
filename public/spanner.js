@@ -120,13 +120,18 @@ _.extend(spanner, Backbone.Events)
 
 SpannerLogo = Backbone.View.extend({
   initialize: function() {
-    var loadLogo = this.$logo = new $.Deferred()
-    this.el.onload = _.bind(function() {
-      var svg = this.el.getSVGDocument(),
-          $spanner = $('#spanner', svg)
-
-      loadLogo.resolve($spanner)
+    var findLogo = _.bind(function() {
+      var svg = this.el.getSVGDocument()
+      return svg && $('#spanner', svg)
     }, this)
+
+    this.$logo = findLogo()
+    if (!this.$logo) {
+      var $logo = this.$logo = new $.Deferred()
+      this.el.onload = function() {
+        $logo.resolve(findLogo())
+      }
+    }
   },
 
   watchStatus: function(socket) {
@@ -135,7 +140,7 @@ SpannerLogo = Backbone.View.extend({
   },
 
   setColor: function(color) {
-    this.$logo.done(function($logo) {
+    $.when(this.$logo).done(function($logo) {
       $logo.css('fill', color)
     })
   }

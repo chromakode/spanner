@@ -101,7 +101,7 @@ ChatPane = Backbone.View.extend({
     this.$input.focus()
   },
 
-  displayLine: function(msg, bySelf) {
+  displayLine: function(msg) {
     var $log = this.$('.log'),
         scrollBottom = $log.prop('scrollHeight') - $log.innerHeight()
         atBottom = Math.abs($log.scrollTop() - scrollBottom) < 5

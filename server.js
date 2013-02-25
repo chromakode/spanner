@@ -140,7 +140,8 @@ app.get('/', function(req, res) {
   }
 })
 
-app.use(express.static(__dirname + '/public'))
+app.use('/static', express.static(__dirname + '/public'))
+app.use('/mod', express.static(__dirname + '/mod'))
 
 app.get('/login', function(req, res) {
   res.sendfile(__dirname + '/public/login.html')
@@ -193,15 +194,15 @@ app.post('/signup', function(req, res) {
   })
 })
 
-app.all('*', function(req, res, next) {
+function requireAuth(req, res, next) {
   if (!req.session.username) {
     res.send(403)
   } else {
     next()
   }
-})
+}
 
-app.get('/mod/:name.html', function(req, res) {
+app.get('/mod/:name.html', requireAuth, function(req, res) {
   moddb.get(req.params.name, function(err, doc) {
     res.set('Content-Type', 'text/javascript');
     if (err) {
@@ -216,7 +217,7 @@ app.get('/mod/:name.html', function(req, res) {
   })
 })
 
-app.put('/mod/:name.html', function(req, res) {
+app.put('/mod/:name.html', requireAuth, function(req, res) {
   function save(body) {
     moddb.get(req.params.name, function(err, doc) {
       doc = doc || {}
@@ -246,7 +247,7 @@ app.put('/mod/:name.html', function(req, res) {
   }
 })
 
-app.get('/mod.json', function(req, res) {
+app.get('/mod.json', requireAuth, function(req, res) {
   moddb.all(function(err, docs) {
     var mods = docs.map(function(key, doc) {
       return key
@@ -257,19 +258,19 @@ app.get('/mod.json', function(req, res) {
   })
 })
 
-app.get('/me.json', function(req, res) {
+app.get('/me.json', requireAuth, function(req, res) {
   res.send({
     user: req.session.username
   })
 })
 
-app.get('/log.json', function(req, res) {
+app.get('/log.json', requireAuth, function(req, res) {
   msgLog.fetch(function(log) {
     res.send(log)
   })
 })
 
-app.get('/who.json', function(req, res) {
+app.get('/who.json', requireAuth, function(req, res) {
   res.send(userlist.list())
 })
 

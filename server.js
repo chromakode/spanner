@@ -1,4 +1,5 @@
 var fs = require('fs')
+  , _ = require('underscore')
   , express = require('express')
   , SessionSockets = require('session.socket.io')
   , connect = require('connect')
@@ -69,6 +70,49 @@ msgLog = {
         cb(res)
       }
     })
+  }
+}
+
+userlist = {
+  _users: {},
+
+  join: function(socket) {
+    return {
+      type: 'join',
+      user: socket.handshake.username,
+      client: this.clientInfo(socket)
+    }
+  },
+
+  part: function(socket) {
+    return {
+      type: 'part',
+      user: socket.handshake.username,
+      client: this.clientInfo(socket)
+    }
+  },
+
+  clientInfo: function(socket) {
+    return {
+      id: socket.id,
+      ua: socket.handshake.headers['user-agent']
+    }
+  },
+
+  list: function() {
+    data = {}
+    _.each(io.sockets.clients(), function(socket) {
+      var user = socket.handshake.username
+
+      if (!data[user]) {
+        data[user] = {clients: {}}
+      }
+
+      var info = this.clientInfo(socket)
+      data[user].clients[info.id] = info
+      delete info.id
+    }, this)
+    return data
   }
 }
 
@@ -220,23 +264,39 @@ app.get('/log.json', function(req, res) {
   })
 })
 
+app.get('/who.json', function(req, res) {
+  res.send(userlist.list())
+})
+
 
 var sio = new SessionSockets(io, couchSessions, cookieParser)
 io.configure(function() {
   io.set('authorization', function(handshakeData, callback) {
     sio.getSession({handshake: handshakeData}, function(err, session) {
+      handshakeData.username = session.username
       callback(err, !!session.username)
     })
   })
 })
 
 sio.on('connection', function(err, socket, session) {
+  io.sockets.emit('msg', userlist.join(socket))
+
   socket.on('msg', function(msg, cb) {
+    if (msg.type == 'join' || msg.type == 'part') {
+      // don't allow join/part spoofing
+      return
+    }
+
     msg.ts = Date.now()
     msg.user = session.username
     msgLog.log(msg)
     socket.broadcast.emit('msg', msg)
     cb(msg)
+  })
+
+  socket.on('disconnect', function() {
+    socket.broadcast.emit('msg', userlist.part(socket))
   })
 })
 

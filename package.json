@@ -10,6 +10,7 @@
     "socket.io": "0.9.13",
     "session.socket.io": "0.1.6",
     "connect-couchdb": "0.2.5",
-    "bcrypt": "0.7.3"
+    "bcrypt": "0.7.3",
+    "underscore": "1.4.4"
   }
 }

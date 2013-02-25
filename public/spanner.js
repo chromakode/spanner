@@ -1,4 +1,4 @@
-var socket = io.connect()
+var socket
 
 spanner = {
   load: function(name) {
@@ -14,15 +14,24 @@ spanner = {
   },
 
   init: function() {
-    socket.on('msg', _.bind(this.handleMsg, this))
-
-    $.when(this.load('core/chat')).done(_.bind(function() {
+    $.when(
+      this.load('core/chat'),
+      this.load('core/userlist')
+    ).done(_.bind(function() {
       this.loadLog()
     }, this))
+
+    socket = io.connect()
+    socket.on('msg', _.bind(this.handleMsg, this))
 
     $.getJSON('me.json', function(data) {
       spanner.me = data
       $('footer .username').text(data.username)
+    })
+
+    spanner.userlist = {}
+    $.getJSON('who.json', function(data) {
+      _.extend(spanner.userlist, data)
     })
   },
 
@@ -60,6 +69,18 @@ spanner = {
   },
 
   handleMsg: function(msg) {
+    if (msg.type == 'join') {
+      if (!this.userlist[msg.user]) {
+        this.userlist[msg.user] = {clients: {}}
+      }
+      this.userlist[msg.user].clients[msg.client.id] = msg.client
+    } else if (msg.type == 'part') {
+      delete this.userlist[msg.user].clients[msg.client.id]
+      if (_.isEmpty(this.userlist[msg.user].clients)) {
+        delete this.userlist[msg.user]
+      }
+    }
+
     this._trigger(msg.type, msg)
     this.log(msg)
   },

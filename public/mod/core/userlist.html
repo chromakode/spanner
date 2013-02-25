@@ -1,0 +1,47 @@
+<style type="text/less">
+#userlist {
+  position: absolute;
+  bottom: 34px;
+  right: 22px;
+  margin: 0;
+  padding: 5px;
+  text-align: right;
+
+  li {
+    font-size: 14px;
+    line-height: 14px;
+    list-style-type: none;
+    margin-bottom: 4px;
+
+    &:after {
+      @size: 8px;
+      content: '';
+      display: inline-block;
+      width: @size;
+      height: @size;
+      background: green;
+      border-radius: @size;
+      margin-left: 4px;
+    }
+  }
+}
+</style>
+
+<ul id="userlist">
+</ul>
+
+<script>
+(function() {
+  function render() {
+    var $userlist = $('#userlist')
+    $userlist.empty()
+    _.each(spanner.userlist, function(user, name) {
+      $('<li>')
+        .text(name)
+        .appendTo($userlist)
+    })
+  }
+
+  spanner.on('join part', render)
+})()
+</script>

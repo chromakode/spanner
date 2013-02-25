@@ -94,23 +94,32 @@ ChatPane = Backbone.View.extend({
 
   initialize: function() {
     this.$input = this.$('.new-message input[type="text"]')
-    spanner.on('chat replay:chat', this.displayLine, this)
+
+    this.$renderedLines = $(document.createDocumentFragment())
+    this.displayLines = _.debounce(this._displayLines, 0)
+    spanner.on('chat replay:chat', this.renderLine, this)
   },
 
   focus: function() {
     this.$input.focus()
   },
 
-  displayLine: function(msg) {
-    var $log = this.$('.log'),
-        scrollBottom = $log.prop('scrollHeight') - $log.innerHeight()
-        atBottom = Math.abs($log.scrollTop() - scrollBottom) < 5
-
-    $log.append(this.lineTemplate({
+  renderLine: function(msg) {
+    this.$renderedLines.append(this.lineTemplate({
       date: new Date(msg.ts).toLocaleTimeString(),
       author: msg.user,
       text: msg.text
     }))
+    this.displayLines()
+  },
+
+  _displayLines: function() {
+    var $log = this.$('.log'),
+        scrollBottom = $log.prop('scrollHeight') - $log.innerHeight(),
+        atBottom = Math.abs($log.scrollTop() - scrollBottom) < 5
+
+    $log.append(this.$renderedLines)
+    this.$renderedLines.empty()
 
     if (atBottom) {
       $log.scrollTop($log.prop('scrollHeight'))

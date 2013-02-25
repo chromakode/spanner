@@ -20,10 +20,26 @@ footer {
   height: 30px;
   line-height: 30px;
   padding: 0 5px;
+  font-size: 11px;
+
+  .mod-list {
+    margin: 0;
+    padding: 0;
+    float: left;
+
+    li {
+      display: inline-block;
+      list-style-type: none;
+      margin-right: 1em;
+    }
+
+    input[type="checkbox"] {
+      vertical-align: middle;
+    }
+  }
 
   .username, .spanner, .logo {
     float: right;
-    font-size: 11px;
   }
 
   .username {

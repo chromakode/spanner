@@ -32,7 +32,21 @@ UserCollection = Backbone.Collection.extend({
   }
 })
 
+Mod = Backbone.Model.extend({
+  idAttribute: 'name',
+
+  load: function() { spanner.load(this.id) },
+  unload: function() { spanner.unload(this.id) }
+})
+
+ModCollection = Backbone.Collection.extend({
+  model: Mod,
+  url: '/mods.json'
+})
+
 spanner = {
+  ui: {},
+
   load: function(name) {
     return $.ajax({
       url: '/mod/' + name + '.html',
@@ -45,8 +59,13 @@ spanner = {
     })
   },
 
+  unload: function(name) {
+    $('#content [data-mod="' + name + '"]').remove()
+    // TODO: unload JS
+  },
+
   init: function() {
-    this.logo = new SpannerLogo({el: $('footer .logo')})
+    this.ui.logo = new SpannerLogo({el: $('footer .logo')})
 
     $.when(
       this.load('core/chat'),
@@ -54,7 +73,7 @@ spanner = {
     ).done(_.bind(function() {
       this.loadLog()
       this.socket = io.connect()
-      this.logo.watchStatus(this.socket)
+      this.ui.logo.watchStatus(this.socket)
       this.socket.on('msg', _.bind(this.handleMsg, this))
     }, this))
 
@@ -65,6 +84,10 @@ spanner = {
 
     this.users = new UserCollection()
     this.users.fetch()
+
+    this.mods = new ModCollection()
+    this.ui.modlist = new ModList({el: $('footer .mod-list'), collection:this.mods})
+    this.mods.fetch()
   },
 
   send: function(msg) {
@@ -143,6 +166,42 @@ SpannerLogo = Backbone.View.extend({
     $.when(this.$logo).done(function($logo) {
       $logo.css('fill', color)
     })
+  }
+})
+
+ModList = Backbone.View.extend({
+  itemTemplate: _.template('<li><label><input name="<%= d.name %>" type="checkbox"><%= d.name %></label></li>', null, {variable: 'd'}),
+
+  events: {
+    'change input[type="checkbox"]': 'toggle'
+  },
+
+  initialize: function() {
+    this.collection.on('add remove reset', this.render, this)
+  },
+
+  render: function() {
+    this.$el.empty()
+    this.collection.each(function(mod) {
+      if (mod.get('creator') == 'builtin') {
+        return
+      }
+      this.$el.append(this.itemTemplate(mod.toJSON()))
+    }, this)
+
+    return this
+  },
+
+  toggle: function(ev) {
+    var $target = $(ev.target),
+        name = $target.attr('name'),
+        mod = this.collection.get(name)
+
+    if ($target.is(':checked')) {
+      mod.load()
+    } else {
+      mod.unload()
+    }
   }
 })
 

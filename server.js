@@ -203,14 +203,13 @@ function requireAuth(req, res, next) {
 }
 
 app.get('/mod/:name.html', requireAuth, function(req, res) {
-  moddb.get(req.params.name, function(err, doc) {
-    res.set('Content-Type', 'text/javascript');
+  moddb.getAttachment(req.params.name, 'content', function(err, doc) {
+    res.set('Content-Type', 'text/html');
     if (err) {
-      if (err.error == 'not_found') {
-        res.send(404)
-      } else {
-        console.log('couch error', err)
-      }
+      console.log('couch error', err)
+      res.send(500)
+    } else if (doc.statusCode == 404) {
+      res.send(404)
     } else {
       res.send(doc.body)
     }
@@ -220,15 +219,29 @@ app.get('/mod/:name.html', requireAuth, function(req, res) {
 app.put('/mod/:name.html', requireAuth, function(req, res) {
   function save(body) {
     moddb.get(req.params.name, function(err, doc) {
-      doc = doc || {}
-      doc.body = body
+      doc = doc || {creator: req.session.username}
+      doc.uploader = req.session.username
+      doc.ts = Date.now()
       moddb.save(req.params.name, doc, function(err, doc) {
         if (err) {
           console.log('couch put error', err)
           res.send(500)
-        } else {
-          res.send(200)
+          return
         }
+
+        var attachment = {
+          name: 'content',
+          contentType: 'text/html',
+          body: body
+        }
+        moddb.saveAttachment(doc, attachment, function(err, doc) {
+          if (err) {
+            console.log('couch put attachment error', err)
+            res.send(500)
+          } else {
+            res.send(200)
+          }
+        })
       })
     })
   }
@@ -247,13 +260,21 @@ app.put('/mod/:name.html', requireAuth, function(req, res) {
   }
 })
 
-app.get('/mod.json', requireAuth, function(req, res) {
-  moddb.all(function(err, docs) {
+app.get('/mods.json', requireAuth, function(req, res) {
+  moddb.all({include_docs: true}, function(key, docs) {
     var mods = docs.map(function(key, doc) {
-      return key
+      var info = _.pick(doc, 'creator', 'uploader', 'ts')
+      info.name = key
+      return info
     })
-    fs.readdir(__dirname + '/public/mod/core/', function(err, filenames) {
-      res.send(mods.concat(filenames))
+    fs.readdir(__dirname + '/mod/core', function(err, filenames) {
+      _.each(filenames, function(filename) {
+        mods.push({
+          name: 'core/' + filename.split('.')[0],
+          creator: 'builtin'
+        })
+      })
+      res.send(mods)
     })
   })
 })

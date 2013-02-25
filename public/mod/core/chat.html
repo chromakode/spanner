@@ -19,6 +19,13 @@
       list-style-type: none;
     }
 
+    .date {
+      display: inline-block;
+      font-size: 12px;
+      color: gray;
+      width: 6em;
+    }
+
     .author {
       background: #e2e2e2;
       border-radius: 3px;
@@ -78,7 +85,7 @@
 
 <script>
 (function() {
-  var lineTemplate = _.template('<li class="message"><span class="author"><%= d.author %></span><%= d.text %></li>', null, {variable: 'd'})
+  var lineTemplate = _.template('<li class="message"><span class="date"><%= d.date %></span><span class="author"><%= d.author %></span><span class="text"><%= d.text %></span></li>', null, {variable: 'd'})
 
   function display(msg, bySelf) {
     var $log = $('#chat .log'),
@@ -86,6 +93,7 @@
         atBottom = Math.abs($log.scrollTop() - scrollBottom) < 5
 
     $log.append(lineTemplate({
+      date: new Date(msg.ts).toLocaleTimeString(),
       author: bySelf ? spanner.me.username : msg.user,
       text: msg.text
     }))

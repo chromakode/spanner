@@ -100,19 +100,22 @@ userlist = {
   },
 
   list: function() {
-    data = {}
+    users = {}
     _.each(io.sockets.clients(), function(socket) {
-      var user = socket.handshake.username
+      var name = socket.handshake.username
 
-      if (!data[user]) {
-        data[user] = {clients: {}}
+      if (!users[name]) {
+        users[name] = {clients: []}
       }
 
-      var info = this.clientInfo(socket)
-      data[user].clients[info.id] = info
-      delete info.id
+      users[name].clients.push(this.clientInfo(socket))
     }, this)
-    return data
+
+    users = _.map(users, function(info, name) {
+      info.name = name
+      return info
+    })
+    return users
   }
 }
 
@@ -256,7 +259,7 @@ app.get('/mod.json', function(req, res) {
 
 app.get('/me.json', function(req, res) {
   res.send({
-    username: req.session.username
+    user: req.session.username
   })
 })
 

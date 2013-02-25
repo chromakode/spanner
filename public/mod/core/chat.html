@@ -83,45 +83,50 @@
 </form>
 </div>
 
-<script>
-(function() {
-  var lineTemplate = _.template('<li class="message"><span class="date"><%= d.date %></span><span class="author"><%= d.author %></span><span class="text"><%= d.text %></span></li>', null, {variable: 'd'})
+<script>(function() {
+ChatPane = Backbone.View.extend({
+  lineTemplate: _.template('<li class="message"><span class="date"><%= d.date %></span><span class="author"><%= d.author %></span><span class="text"><%= d.text %></span></li>', null, {variable: 'd'}),
 
-  function display(msg, bySelf) {
-    var $log = $('#chat .log'),
+  events: {
+    'click .log': 'focus',
+    'submit .new-message': 'send'
+  },
+
+  initialize: function() {
+    this.$input = this.$('.new-message input[type="text"]')
+    spanner.on('chat replay:chat', this.displayLine, this)
+  },
+
+  focus: function() {
+    this.$input.focus()
+  },
+
+  displayLine: function(msg, bySelf) {
+    var $log = this.$('.log'),
         scrollBottom = $log.prop('scrollHeight') - $log.innerHeight()
         atBottom = Math.abs($log.scrollTop() - scrollBottom) < 5
 
-    $log.append(lineTemplate({
+    $log.append(this.lineTemplate({
       date: new Date(msg.ts).toLocaleTimeString(),
-      author: bySelf ? spanner.me.username : msg.user,
+      author: msg.user,
       text: msg.text
     }))
 
     if (atBottom) {
       $log.scrollTop($log.prop('scrollHeight'))
     }
-  }
+  },
 
-  spanner.on('chat replay:chat', function(msg) {
-    display(msg)
-  })
-
-  var $input = $('#chat .new-message input[type="text"]')
-
-  $('#chat .log').on('click', function() {
-    $input.focus()
-  })
-  $input.focus()
-
-  $('#chat .new-message').on('submit', function() {
+  send: function() {
     msg = {
       type: 'chat',
-      text: $input.val()
+      text: this.$input.val()
     }
     spanner.send(msg)
-    $input.val('')
+    this.$input.val('')
     return false
-  })
-})()
-</script>
+  }
+})
+
+new ChatPane({el: $('#chat')}).focus()
+})()</script>

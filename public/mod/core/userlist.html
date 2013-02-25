@@ -30,18 +30,23 @@
 <ul id="user-list">
 </ul>
 
-<script>
-(function() {
-  function render() {
-    var $userlist = $('#user-list')
-    $userlist.empty()
-    _.each(spanner.userlist, function(user, name) {
-      $('<li>')
-        .text(name)
-        .appendTo($userlist)
-    })
-  }
+<script>(function() {
+UserList = Backbone.View.extend({
+  initialize: function() {
+    spanner.on('join part', this.render, this)
+  },
 
-  spanner.on('join part', render)
-})()
-</script>
+  render: function() {
+    this.$el.empty()
+    spanner.users.each(function(user) {
+      $('<li>')
+        .text(user.get('name'))
+        .appendTo(this.$el)
+    }, this)
+
+    return this
+  }
+})
+
+new UserList({el: $('#user-list')}).render()
+})()</script>

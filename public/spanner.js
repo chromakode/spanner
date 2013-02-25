@@ -1,3 +1,37 @@
+User = Backbone.Model.extend({
+  idAttribute: 'name',
+  defaults: function() {
+    return {clients: []}
+  }
+})
+
+UserCollection = Backbone.Collection.extend({
+  model: User,
+  url: '/who.json',
+
+  initialize: function() {
+    spanner.on('join', function(msg) {
+      var user = this.get(msg.user)
+      if (!user) {
+        user = new User({name: msg.user})
+        this.add(user)
+      }
+      user.get('clients').push(msg.client)
+    }, this)
+
+    spanner.on('part', function(msg) {
+      var user = this.get(msg.user),
+          clients = _.reject(user.get('clients'), function(client) {
+            return client.id == msg.client.id
+          })
+      user.set('clients', clients)
+      if (_.isEmpty(clients)) {
+        this.remove(user)
+      }
+    }, this)
+  }
+})
+
 spanner = {
   load: function(name) {
     return $.ajax({
@@ -12,14 +46,15 @@ spanner = {
   },
 
   init: function() {
+    this.logo = new SpannerLogo({el: $('footer .logo')})
+
     $.when(
       this.load('core/chat'),
       this.load('core/userlist')
     ).done(_.bind(function() {
       this.loadLog()
       this.socket = io.connect()
-      this.socket.on('connect', _.bind(this.colorLogo, this, 'darkgreen'))
-      this.socket.on('disconnect', _.bind(this.colorLogo, this, 'darkred'))
+      this.logo.watchStatus(this.socket)
       this.socket.on('msg', _.bind(this.handleMsg, this))
     }, this))
 
@@ -28,65 +63,17 @@ spanner = {
       $('footer .username').text(data.username)
     })
 
-    spanner.userlist = {}
-    $.getJSON('who.json', function(data) {
-      _.extend(spanner.userlist, data)
-    })
-  },
-
-  colorLogo: function(color) {
-    spanner.$logo.done(function($logo) {
-      $logo.css('fill', color)
-    })
-  },
-
-  listeners: {},
-  on: function(types, cb) {
-    _.each(types.split(' '), function(type) {
-      if (!this.listeners[type]) {
-        this.listeners[type] = []
-      }
-      this.listeners[type].push(cb)
-    }, this)
-  },
-
-  off: function(types, cb) {
-    _.each(types.split(' '), function(type) {
-      if (this.listeners[type]) {
-        this.listeners[type] = _.without(this.listeners[type], cb)
-      }
-    })
-  },
-
-  _trigger: function(type/*, ... */) {
-    var listeners = this.listeners[type],
-        params = _.tail(arguments)
-    if (listeners) {
-      _.each(listeners, function(cb) {
-        cb.apply(null, params)
-      })
-    }
+    spanner.users = new UserCollection()
+    spanner.users.fetch()
   },
 
   send: function(msg) {
-    this._trigger('send:' + msg.type, msg)
+    this.trigger('send:' + msg.type, msg)
     this.socket.emit('msg', msg, _.bind(this.handleMsg, this))
   },
 
   handleMsg: function(msg) {
-    if (msg.type == 'join') {
-      if (!this.userlist[msg.user]) {
-        this.userlist[msg.user] = {clients: {}}
-      }
-      this.userlist[msg.user].clients[msg.client.id] = msg.client
-    } else if (msg.type == 'part') {
-      delete this.userlist[msg.user].clients[msg.client.id]
-      if (_.isEmpty(this.userlist[msg.user].clients)) {
-        delete this.userlist[msg.user]
-      }
-    }
-
-    this._trigger(msg.type, msg)
+    this.trigger(msg.type, msg)
     this.log(msg)
   },
 
@@ -110,7 +97,7 @@ spanner = {
     // restore local log (fast)
     var lastTs = 0
     _.each(this._log, function(msg) {
-      this._trigger('replay:' + msg.type, msg)
+      this.trigger('replay:' + msg.type, msg)
       lastTs = Math.max(lastTs, msg.ts || 0)
     }, this)
 
@@ -121,7 +108,7 @@ spanner = {
       success: _.bind(function(log) {
         _.each(log, function(msg) {
           if (msg.ts <= lastTs) { return }
-          this._trigger('replay:' + msg.type, msg)
+          this.trigger('replay:' + msg.type, msg)
           this.log(msg)
         }, this)
       }, this)
@@ -129,14 +116,28 @@ spanner = {
   }
 }
 
-spanner.$logo = new $.Deferred()
-$(function() {
-  var $logo = $('footer .logo')
-  $logo[0].onload = function() {
-    var svg = $logo[0].getSVGDocument(),
-        $spanner = $('#spanner', svg)
+_.extend(spanner, Backbone.Events)
 
-    spanner.$logo.resolve($spanner)
+SpannerLogo = Backbone.View.extend({
+  initialize: function() {
+    var loadLogo = this.$logo = new $.Deferred()
+    this.el.onload = _.bind(function() {
+      var svg = this.el.getSVGDocument(),
+          $spanner = $('#spanner', svg)
+
+      loadLogo.resolve($spanner)
+    }, this)
+  },
+
+  watchStatus: function(socket) {
+      socket.on('connect', _.bind(this.setColor, this, 'darkgreen'))
+      socket.on('disconnect', _.bind(this.setColor, this, 'darkred'))
+  },
+
+  setColor: function(color) {
+    this.$logo.done(function($logo) {
+      $logo.css('fill', color)
+    })
   }
 })
 

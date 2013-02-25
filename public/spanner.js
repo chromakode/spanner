@@ -109,6 +109,23 @@ spanner = {
   loadLog: function() {
     if (!sessionStorage) { return }
 
+    var localDone = new $.Deferred
+
+    // sync up with server log and store anything we missed
+    $.when(
+      $.ajax({
+        url: 'log.json',
+        cache: false,
+      }),
+      localDone
+    ).done(_.bind(function(serverLog, lastTs) {
+      _.each(serverLog[0], function(msg) {
+        if (msg.ts <= lastTs) { return }
+        this.trigger('replay:' + msg.type, msg)
+        this.log(msg)
+      }, this)
+    }, this))
+
     try {
       this._log = JSON.parse(sessionStorage.log)
     } catch (e) {}
@@ -123,19 +140,7 @@ spanner = {
       this.trigger('replay:' + msg.type, msg)
       lastTs = Math.max(lastTs, msg.ts || 0)
     }, this)
-
-    // sync up with server log and store anything we missed
-    $.ajax({
-      url: 'log.json',
-      cache: false,
-      success: _.bind(function(log) {
-        _.each(log, function(msg) {
-          if (msg.ts <= lastTs) { return }
-          this.trigger('replay:' + msg.type, msg)
-          this.log(msg)
-        }, this)
-      }, this)
-    })
+    localDone.resolve(lastTs)
   }
 }
 

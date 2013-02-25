@@ -63,8 +63,8 @@ spanner = {
       $('footer .username').text(data.username)
     })
 
-    spanner.users = new UserCollection()
-    spanner.users.fetch()
+    this.users = new UserCollection()
+    this.users.fetch()
   },
 
   send: function(msg) {

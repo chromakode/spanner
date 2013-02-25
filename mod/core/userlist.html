@@ -33,12 +33,12 @@
 <script>(function() {
 UserList = Backbone.View.extend({
   initialize: function() {
-    spanner.on('join part', this.render, this)
+    this.collection.on('add remove reset', this.render, this)
   },
 
   render: function() {
     this.$el.empty()
-    spanner.users.each(function(user) {
+    this.collection.each(function(user) {
       $('<li>')
         .text(user.get('name'))
         .appendTo(this.$el)
@@ -48,5 +48,8 @@ UserList = Backbone.View.extend({
   }
 })
 
-new UserList({el: $('#user-list')}).render()
+new UserList({
+  el: $('#user-list'),
+  collection: spanner.users
+}).render()
 })()</script>

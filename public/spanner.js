@@ -130,8 +130,8 @@ SpannerLogo = Backbone.View.extend({
   },
 
   watchStatus: function(socket) {
-      socket.on('connect', _.bind(this.setColor, this, 'darkgreen'))
-      socket.on('disconnect', _.bind(this.setColor, this, 'darkred'))
+    socket.on('connect', _.bind(this.setColor, this, 'darkgreen'))
+    socket.on('disconnect', _.bind(this.setColor, this, 'darkred'))
   },
 
   setColor: function(color) {

@@ -70,12 +70,12 @@ spanner = {
     $.when(
       this.load('core/chat'),
       this.load('core/userlist')
-    ).done(_.bind(function() {
+    ).done(_.wrap(_.bind(function() {
       this.loadLog()
       this.socket = io.connect()
       this.ui.logo.watchStatus(this.socket)
       this.socket.on('msg', _.bind(this.handleMsg, this))
-    }, this))
+    }, this), _.defer))
 
     $.getJSON('me.json', function(data) {
       spanner.me = data

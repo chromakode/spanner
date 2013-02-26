@@ -39,8 +39,9 @@ logdb.exists(function(err, exists) {
 
 var app = express()
   , server = require('https').createServer({
-      key: fs.readFileSync(__dirname + '/keys/key.pem'),
-      cert: fs.readFileSync(__dirname + '/keys/cert.pem')
+      key: fs.readFileSync(config.ssl.keyPath),
+      cert: fs.readFileSync(config.ssl.certPath),
+      ca: fs.readFileSync(config.ssl.caPath)
   }, app)
   , io = require('socket.io').listen(server)
 

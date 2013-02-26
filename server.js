@@ -133,6 +133,7 @@ couch.database(couchSessions.db.name).exists(function(err, exists) {
   }
 })
 
+app.use(express.logger())
 app.use(express.bodyParser())
 var cookieParser = connect.cookieParser(config.secret)
 app.use(cookieParser)

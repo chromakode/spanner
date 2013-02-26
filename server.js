@@ -45,6 +45,11 @@ var app = express()
   }, app)
   , io = require('socket.io').listen(server)
 
+var httpRedirectApp = express()
+httpRedirectApp.get('*', function(req, res) {
+  res.redirect(config.origin + req.url)
+})
+
 msgLog = {
   fetchLimit: 1000,
 
@@ -329,5 +334,6 @@ sio.on('connection', function(err, socket, session) {
 })
 
 if (!module.parent) {
-  server.listen(config.port)
+  httpRedirectApp.listen(config.port.http)
+  server.listen(config.port.https)
 }

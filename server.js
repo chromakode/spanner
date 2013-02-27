@@ -41,7 +41,7 @@ var app = express()
   , server = require('https').createServer({
       key: fs.readFileSync(config.ssl.keyPath),
       cert: fs.readFileSync(config.ssl.certPath),
-      ca: fs.readFileSync(config.ssl.caPath)
+      ca: config.ssl.caPath && fs.readFileSync(config.ssl.caPath)
   }, app)
   , io = require('socket.io').listen(server)
 

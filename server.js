@@ -8,6 +8,7 @@ var fs = require('fs')
   , bcrypt = require('bcrypt')
   , config = require('./config.js')
 
+var COOKIE_NAME = 'me'
 
 var couch = new cradle.Connection()
   , moddb = exports.moddb = couch.database('spanner-mods')
@@ -138,6 +139,7 @@ app.use(express.bodyParser())
 var cookieParser = connect.cookieParser(config.secret)
 app.use(cookieParser)
 app.use(connect.session({
+  key: COOKIE_NAME,
   store: couchSessions,
   cookie: {secure: true, maxAge: 7*24*60*60*1000}
 }))
@@ -306,7 +308,7 @@ app.get('/who.json', requireAuth, function(req, res) {
 })
 
 
-var sio = new SessionSockets(io, couchSessions, cookieParser)
+var sio = new SessionSockets(io, couchSessions, cookieParser, COOKIE_NAME)
 io.configure(function() {
   io.set('authorization', function(handshakeData, callback) {
     sio.getSession({handshake: handshakeData}, function(err, session) {

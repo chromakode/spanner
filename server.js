@@ -137,7 +137,10 @@ app.use(express.logger())
 app.use(express.bodyParser())
 var cookieParser = connect.cookieParser(config.secret)
 app.use(cookieParser)
-app.use(connect.session({store: couchSessions}))
+app.use(connect.session({
+  store: couchSessions,
+  cookie: {secure: true, maxAge: 7*24*60*60*1000}
+}))
 
 app.get('/', function(req, res) {
   if (!req.session.username) {
